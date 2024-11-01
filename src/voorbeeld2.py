@@ -12,7 +12,9 @@ for section in sections:
     section.right_margin = Cm(1.5)
 
 # Create a new header for the first section
-header = sections[0].header
+sections[0].different_first_page_header_footer = True
+header = sections[0].first_page_header
+
 run = header.paragraphs[0].add_run()
 run.add_picture('files/images/tokaio.png', width=Cm(7.5))
 header.paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -49,13 +51,15 @@ run.add_text(f'Nederland')
 hide_table_borders(hoofd)
 
 # Factuur detail
-aantal_artikels = 3
+aantal_artikels = 25
+
 document.add_paragraph('Factuur details')
 detail_tabel = document.add_table(rows=aantal_artikels + 2, cols=5)
 
 detail_tabel.autofit = False 
 detail_tabel.allow_autofit = False
 
+# HEADER
 # 19 cm te verdelen over 5 kolommen (3.8)
 # Product beschrijving
 detail_tabel.columns[0].width = Cm(6.5)
@@ -78,53 +82,46 @@ detail_tabel.rows[0].cells[3].text = 'BTW (21%)'
 detail_tabel.columns[4].width = Cm(3.5)
 detail_tabel.rows[0].cells[4].text = 'Bedrag'
 
-# details
-detail_tabel.rows[1].cells[0].text = 'Product 1'
-detail_tabel.rows[2].cells[0].text = 'Product 2'
-detail_tabel.rows[3].cells[0].text = 'Product 3'
-
-# Aantal
-detail_tabel.rows[1].cells[1].text = '1'
-detail_tabel.rows[2].cells[1].text = '2'
-detail_tabel.rows[3].cells[1].text = '3'
-
-# Prijs
-detail_tabel.rows[1].cells[2].text = '€ 100'
-detail_tabel.rows[2].cells[2].text = '€ 200'
-detail_tabel.rows[3].cells[2].text = '€ 300'
-
-# BTW
-detail_tabel.rows[1].cells[3].text = '€ 21'
-detail_tabel.rows[2].cells[3].text = '€ 42'
-detail_tabel.rows[3].cells[3].text = '€ 63'
-
-# Bedrag
-detail_tabel.rows[1].cells[4].text = '€ 121'
-detail_tabel.rows[2].cells[4].text = '€ 242'
-detail_tabel.rows[3].cells[4].text = '€ 363'
+# DETAILS
+for product_nr in range(1, aantal_artikels):
+    detail_tabel.rows[product_nr].cells[0].text = f'Product {product_nr}'
+    detail_tabel.rows[product_nr].cells[1].text = f'{product_nr}'
+    detail_tabel.rows[product_nr].cells[2].text = f'€ {100}'
+    detail_tabel.rows[product_nr].cells[3].text = f'€ {21}'
+    detail_tabel.rows[product_nr].cells[4].text = f'€ {121}'
 
 # Totaal
-run = detail_tabel.rows[4].cells[3].paragraphs[0].add_run()
+run = detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run()
 run.text = 'Subtotaal'
 run.add_break(WD_BREAK.LINE)
 run.add_text(f'BTW')
 run.add_break(WD_BREAK.LINE)
 run.add_text(f'Totaal')
 
-run = detail_tabel.rows[4].cells[4].paragraphs[0].add_run()
-run.text = '€ 726'
+run = detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run()
+run.text = f'€ {aantal_artikels * 100}'
 run.add_break(WD_BREAK.LINE)
-run.add_text(f'€ 126')
+run.add_text(f'€ {aantal_artikels * 21}')
 run.add_break(WD_BREAK.LINE)
-run.add_text(f'€ 852')
+run.add_text(f'€ {aantal_artikels * 121}')
 
 
 hide_table_borders(detail_tabel)
 
 trailing_text = document.add_paragraph('Hier komt nog wat tekst onder de tabel')
 
-footer = sections[0].footer
+footer = sections[0].first_page_footer
 run = footer.paragraphs[0].add_run()
+run.add_text('Tokaio BV')
+run.add_break()
+run.add_text('Kerkstraat 1')
+run.add_break()
+run.add_text('Nog wa info ')
+run.add_break()
+run.add_text('En hoplaaa')
+
+other_footer = sections[0].footer
+run = other_footer.paragraphs[0].add_run()
 run.add_text('Tokaio BV')
 run.add_break()
 run.add_text('Kerkstraat 1')
@@ -136,4 +133,4 @@ run.add_text('En hoplaaa')
 
 document.add_page_break()
 
-document.save('files/invoices/voorbeeld1.docx')
+document.save('files/invoices/voorbeeld2.docx')
