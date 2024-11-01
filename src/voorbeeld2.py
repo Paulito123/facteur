@@ -1,7 +1,7 @@
 from docx import Document
 from docx.shared import Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER, WD_BREAK
-from helper import set_cell_border, hide_table_borders, set_tokaio_paragraph_style
+from helper import convert_to_pdf, hide_table_borders, set_tokaio_paragraph_style
 
 
 document = Document()
@@ -134,3 +134,4 @@ run.add_text('En hoplaaa')
 document.add_page_break()
 
 document.save('files/invoices/voorbeeld2.docx')
+convert_to_pdf('files/invoices/voorbeeld2.docx', 'files/invoices/voorbeeld2.pdf')

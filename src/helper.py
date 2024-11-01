@@ -3,6 +3,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import Cm, Pt
+import subprocess
 
 
 def set_cell_border(cell, **kwargs):
@@ -64,4 +65,8 @@ def set_tokaio_paragraph_style(document: Document):
     paragraph_format.first_line_indent = Cm(-0.5)
     paragraph_format.space_before = Pt(12)
     paragraph_format.widow_control = True
-    
+
+
+def convert_to_pdf(docx_path, pdf_path):
+    subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', '/'.join(pdf_path.split('/')[:-1]), docx_path])
+
