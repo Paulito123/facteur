@@ -58,6 +58,41 @@ def hide_table_borders(table):
             )
 
 
+def set_borders_detail_tabel(table):
+    aantal_rijen = len(table.rows)
+    counter = 1
+    # Set borders for table
+    for row in table.rows:
+        if counter == 1:
+            for cell in row.cells:
+                set_cell_border(
+                    cell,
+                    top={"sz": 6, "val": "single", "color": "#000000", "space": "0"},
+                    bottom={"sz": 6, "val": "single", "color": "#000000", "space": "0"},
+                    start={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                    end={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                )
+        elif counter != aantal_rijen:
+            for cell in row.cells:
+                set_cell_border(
+                    cell,
+                    top={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                    bottom={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                    start={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                    end={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                )
+        else:
+            for cell in row.cells:
+                set_cell_border(
+                    cell,
+                    top={"sz": 6, "val": "single", "color": "#000000", "space": "0"},
+                    bottom={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                    start={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                    end={"sz": 1, "val": "single", "color": "#FFFFFF", "space": "0"},
+                )
+        counter += 1
+
+
 def set_tokaio_paragraph_style(document: Document):
     style = document.styles.add_style('Indent', WD_STYLE_TYPE.PARAGRAPH)
     paragraph_format = style.paragraph_format
