@@ -1,10 +1,12 @@
 from docx import Document
 from docx.shared import Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT, WD_TAB_LEADER, WD_BREAK
-from helper import set_cell_border, hide_table_borders, set_tokaio_paragraph_style
+from doc_helper import DocHelper
+from enumerations import BorderTemplate
 
 
 document = Document()
+dhelpr = DocHelper()
 
 sections = document.sections
 for section in sections:
@@ -46,7 +48,7 @@ run.add_text(f'1234 AB Amsterdam')
 run.add_break(WD_BREAK.LINE)
 run.add_text(f'Nederland')
 
-hide_table_borders(hoofd)
+dhelpr.set_table_border_template(hoofd, BorderTemplate.NO_BORDERS)
 
 # Factuur detail
 aantal_artikels = 3
@@ -118,8 +120,7 @@ run.add_text(f'€ 126')
 run.add_break(WD_BREAK.LINE)
 run.add_text(f'€ 852')
 
-
-hide_table_borders(detail_tabel)
+dhelpr.set_table_border_template(detail_tabel, BorderTemplate.NO_BORDERS)
 
 trailing_text = document.add_paragraph('Hier komt nog wat tekst onder de tabel')
 
