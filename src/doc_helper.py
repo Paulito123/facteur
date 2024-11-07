@@ -5,6 +5,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import Cm, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from enumerations import BorderTemplate, InvoiceTemplate, DocumentType, OfferTemplate
+from typing import Dict
 import subprocess
 
 
@@ -164,7 +165,7 @@ class DocHelper:
             section.right_margin = Cm(1.5)
         
 
-    def set_header(self, document: Document) -> None:
+    def set_header(self, document: Document, data: Dict) -> None:
         # Create a new header for the first section
         document.sections[0].different_first_page_header_footer = True
         header = document.sections[0].first_page_header
@@ -175,43 +176,49 @@ class DocHelper:
         titel_cell = rij0[0]
         titel_cell.paragraphs[0].style = document.styles['Heading 1']
         run = titel_cell.paragraphs[0].add_run()
-        run.add_text('Factuur')
+        run.add_text(data["title"])
 
         bcell = rij0[1]
         ccell = rij0[2]
         image_cell = bcell.merge(ccell)
-        image_cell.paragraphs[0].add_run().add_picture('files/images/tokaio.png', width=Cm(7.5))
+        image_cell.paragraphs[0].add_run().add_picture(data["path_image"], width=Cm(7.5))
         image_cell.paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        # run.add_break()
 
         rij1 = hoofd.rows[1].cells
         details_cell = rij1[0]
         run = details_cell.paragraphs[0].add_run()
 
-        run.add_text(f'Factuur nr.')
+        run.add_text(f'Factuur nr. {data["invoice_nr"]}')
         run.add_break(WD_BREAK.LINE)
-        run.add_text('Factuur datum')
+        run.add_text(f'Factuurdatum {data["invoice_date"]}')
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'Factuur nr.')
+        run.add_text(f'Vervaldag {data["due_date"]}')
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'Betalings datum')
+        run.add_text(f'Leveringsdatum {data["delivery_date"]}')
 
         run = rij1[2].paragraphs[0].add_run()
 
-        run.add_text('Kerkstraat 1')
+        run.add_text(f"{data['debtor_name']}")
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'1234 AB Amsterdam')
+
+        if 'tav'in data:
+            run.add_text(f't.a.v. {data["tav"]}')
+            run.add_break(WD_BREAK.LINE)
+
+        run.add_text(f"{data['debtor_street']} {data['debtor_nr']}")
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'Nederland')
+        run.add_text(f'{data["debtor_zip"]} {data["debtor_city"]}')
+        run.add_break(WD_BREAK.LINE)
+        run.add_text(f'{data["debtor_country"]}')
 
         self.set_table_border_template(hoofd, BorderTemplate.NO_BORDERS)
 
 
-    def set_body(self, document: Document) -> None:
+    def set_body(self, document: Document, data: Dict) -> None:
         # Factuur detail
-        aantal_artikels = 2
+        aantal_artikels = len(data["items"].keys())
 
-        detail_tabel_titel = document.add_paragraph('Factuur details')
+        detail_tabel_titel = document.add_paragraph('Details')
         detail_tabel_titel.style = document.styles['Heading 2']
         detail_tabel = document.add_table(rows=aantal_artikels + 2, cols=5)
 
@@ -222,7 +229,6 @@ class DocHelper:
         # 19 cm te verdelen over 5 kolommen (3.8)
         # Product beschrijving
         detail_tabel.columns[0].width = Cm(6.5)
-        # detail_tabel.rows[0].cells[0].width = Cm(4.5)
         detail_tabel.rows[0].cells[0].text = 'Product beschrijving'
 
         # Aantal
@@ -242,12 +248,13 @@ class DocHelper:
         detail_tabel.rows[0].cells[4].text = 'Bedrag'
 
         # DETAILS
-        for product_nr in range(1, aantal_artikels+1):
-            detail_tabel.rows[product_nr].cells[0].text = f'Product {product_nr}'
-            detail_tabel.rows[product_nr].cells[1].text = f'{product_nr}'
-            detail_tabel.rows[product_nr].cells[2].text = f'€ {100}'
-            detail_tabel.rows[product_nr].cells[3].text = f'€ {21}'
-            detail_tabel.rows[product_nr].cells[4].text = f'€ {121}'
+        counter = 1
+        for item_nr in data["items"].keys():
+            detail_tabel.rows[counter].cells[0].text = f'{data["items"][item_nr]["description"]}'
+            detail_tabel.rows[counter].cells[1].text = f'{data["items"][item_nr]["qty"]}'
+            detail_tabel.rows[counter].cells[2].text = f'{data["symbol"]} {data["items"][item_nr]["base_amt"]}'
+            detail_tabel.rows[counter].cells[3].text = f'{data["symbol"]} {data["items"][item_nr]["vat_amt"]}'
+            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {data["items"][item_nr]["tot_amt"]}'
 
         # Totaal
         detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run('Subtotaal')
@@ -256,18 +263,18 @@ class DocHelper:
         detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
         detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run('Totaal').bold = True
 
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'€ {aantal_artikels * 100}').bold = False
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_base_amt"]}').bold = False
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'€ {aantal_artikels * 21}')
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_vat_amt"]}')
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'€ {aantal_artikels * 121}').bold = True
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_tot_amt"]}').bold = True
 
         self.set_table_border_template(detail_tabel, BorderTemplate.DETAIL_1)
 
-        trailing_text = document.add_paragraph('Hier komt nog wat tekst onder de tabel')
+        # trailing_text = document.add_paragraph('Hier komt nog wat tekst onder de tabel')
 
 
-    def set_footer(self, document: Document) -> None:
+    def set_footer(self, document: Document, data: Dict) -> None:
         # FOOTERS
         footer = document.sections[0].first_page_footer
         voet_1_tabel = footer.add_table(rows=1, cols=3, width=Cm(19))
@@ -275,23 +282,23 @@ class DocHelper:
         rij0 = voet_1_tabel.rows[0].cells
         voet_1_cell_1 = rij0[0]
         run = voet_1_cell_1.paragraphs[0].add_run()
-        run.add_text('Tokaio BV')
+        run.add_text(f'{data["creditor_name"]}')
         run.add_break()
-        run.add_text('Kerkstraat 1')
+        run.add_text(f"{data['creditor_street']} {data['creditor_nr']}")
         run.add_break()
-        run.add_text('1234 AB Amsterdam')
+        run.add_text(f'{data["creditor_zip"]} {data["creditor_city"]} {data["creditor_country"]}')
         voet_1_cell_2 = rij0[1]
         run = voet_1_cell_2.paragraphs[0].add_run()
-        run.add_text('RPR Antwerpen - Turnhout')
+        run.add_text(f'{data["creditor_rpr"]}')
         run.add_break()
-        run.add_text('btw BE1003.123.456')
+        run.add_text(f'BTW {data["creditor_vat"]}')
         run.add_break()
-        run.add_text('rek BE12 3456 7890 1234')
+        run.add_text(f'rek {data["creditor_bank_account"]}')
         voet_1_cell_3 = rij0[2]
         run = voet_1_cell_3.paragraphs[0].add_run()
-        run.add_text('tel +32 486 45 67 89')
+        run.add_text(f'tel {data["creditor_phone"]}')
         run.add_break()
-        run.add_text('info@tokaio.be')
+        run.add_text(f'{data["creditor_email"]}')
         run.add_break()
         run.add_text('Pagina ')
         self.add_page_number(run)
@@ -302,23 +309,23 @@ class DocHelper:
         rij0 = voet_2_tabel.rows[0].cells
         voet_2_cell_1 = rij0[0]
         run = voet_2_cell_1.paragraphs[0].add_run()
-        run.add_text('Tokaio BV')
+        run.add_text(f'{data["creditor_name"]}')
         run.add_break()
-        run.add_text('Kerkstraat 1')
+        run.add_text(f"{data['creditor_street']} {data['creditor_nr']}")
         run.add_break()
-        run.add_text('1234 AB Amsterdam')
+        run.add_text(f'{data["creditor_zip"]} {data["creditor_city"]} {data["creditor_country"]}')
         voet_2_cell_2 = rij0[1]
         run = voet_2_cell_2.paragraphs[0].add_run()
-        run.add_text('RPR Antwerpen - Turnhout')
+        run.add_text(f'{data["creditor_rpr"]}')
         run.add_break()
-        run.add_text('btw BE1003.123.456')
+        run.add_text(f'BTW {data["creditor_vat"]}')
         run.add_break()
-        run.add_text('rek BE12 3456 7890 1234')
+        run.add_text(f'rek {data["creditor_bank_account"]}')
         voet_2_cell_3 = rij0[2]
         run = voet_2_cell_3.paragraphs[0].add_run()
-        run.add_text('+32 486 45 67 89')
+        run.add_text(f'tel {data["creditor_phone"]}')
         run.add_break()
-        run.add_text('info@tokaio.be')
+        run.add_text(f'{data["creditor_email"]}')
         run.add_break()
         run.add_text('Pagina ')
         self.add_page_number(run)

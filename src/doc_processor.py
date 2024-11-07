@@ -1,13 +1,25 @@
+import datetime
+
 from typing import Dict, AnyStr
 from docx import Document
 from docx.shared import Cm
 from enumerations import DocumentType, InvoiceTemplate, OfferTemplate, BorderTemplate
+from json import load
+
+from config import Config
+from doc_helper import DocHelper
 
 
 class DocProcessor:
 
-    def __init__(self, data: Dict = None):
-        self.data = data
+    def __init__(self):
+        self.db = None
+
+        try:
+            with open(Config.PATH_DB, "r") as f:
+                self.db = load(f)
+        except Exception as e:
+            Exception(f"Could not initialize DB: {e}")
         
 
     def __check_data(self, data) -> bool:
@@ -64,8 +76,13 @@ class DocProcessor:
             return False
     
 
-    def __generate(self, data: Dict, config: Dict = {}) -> None:
-        
+    def __generate(self, 
+                   data: Dict,
+                   doc_type: DocumentType = DocumentType.INVOICE, 
+                   invoice_type: InvoiceTemplate = InvoiceTemplate.NEON) -> None:
+        """
+        fucntion to generate the actual document
+        """
         # Check if the data is valid
         if not self.__check_data(data):
             return None
@@ -77,6 +94,16 @@ class DocProcessor:
         due_date = data["due_date"]
         items = data["items"]
 
+        if doc_type == DocumentType.INVOICE:
+            if invoice_type == InvoiceTemplate.NEON:
+                self.generate_neon_invoice(data)
+            elif invoice_type == InvoiceTemplate.ARGENTA:
+                self.generate_argenta_invoice(data)
+            else:
+                raise Exception("Invalid invoice type")
+            
+        elif doc_type == DocumentType.OFFER:
+            ...
         # Create a new Word document
         document = Document()
         document.add_heading('Invoice', 0)
@@ -85,26 +112,80 @@ class DocProcessor:
 
 
     def smart_generate(self, 
+                       data: Dict,
                        doc_type: DocumentType = DocumentType.INVOICE, 
                        invoice_type: InvoiceTemplate = InvoiceTemplate.NEON) -> None:
-        ...
         
+        # Check if the data is valid
+        if not self.__check_data(data):
+            return None
+        
+        doc_data = {
+            "path_image": 'files/images/tokaio.png',
+        }
+        
+        # all the default selection logic goes here
+        if doc_type == DocumentType.INVOICE:
+            
+            doc_data["titel"] = "Factuur"
 
-    def generate_invoice_by_id(self, id: AnyStr):
-        pass
+            if "invoice_date" in data:
+                doc_data["invoice_date"] = data["invoice_date"]
+            else:
+                doc_data["invoice_date"] = datetime.now().strftime("%d-%m-%Y")
+            
+            if "delivery_date" in data:
+                doc_data["delivery_date"] = data["delivery_date"]
+            else:
+                doc_data["delivery_date"] = datetime.now().strftime("%d-%m-%Y")
+            
+            policy = self.db["policies"][data["defaults"]["policy_id"]]
+            
+            currency = self.db["currencies"][data["defaults"]["currency_id"]]
+            doc_data["symbol"] = currency["symbol"]
 
-    def generate_offer_by_id(self, id: AnyStr):
-        pass
+            creditor = self.db["companies"][data["defaults"]["creditor_id"]]
+            for key in creditor.keys():
+                if key not in ["last_sequences"]:
+                    doc_data['creditor_' + key] = creditor[key]
+                else:
+                    doc_data['invoice_nr'] = f'{datetime.now().year}-{creditor['last_sequences']["invoice"] + 1}'
+            
 
-    def generate_argenta_invoice(self, data: Dict):
+            self.generate_invoice(data)
+
+        elif doc_type == DocumentType.OFFER:
+            doc_data["titel"] = "Offerte"
+            self.generate_offer(data)
+
+
+    def generate_offer(self, data: Dict):
         
-        # Generate the invoice
-        return self.__generate(data)
+        # Create a 
+        self.__generate(data)
+
+        # create a new document
+        dhelpr = DocHelper()
+        document = Document()
+
+        # set the styles for the document
+        dhelpr.set_styles(document)
+
+        # set the header, body and footer
+        dhelpr.set_header(document)
+        dhelpr.set_body(document)
+        dhelpr.set_footer(document)
+
+        # save the document and convert it to pdf
+        document.save('files/invoices/voorbeeld2.docx')
+        dhelpr.convert_to_pdf('files/invoices/voorbeeld2.docx', 'files/invoices/voorbeeld2.pdf')
+
+
+    def generate_invoice(self, data: Dict):
         
-    def generate_neon_invoice(self, data: Dict):
-        
-        # Generate the invoice
-        return self.__generate(data)
+        # Create a 
+        self.__generate(data)
+
 
 if __name__ == "__main__":
     data = {
@@ -123,12 +204,9 @@ if __name__ == "__main__":
                 "base_amt": 429.55
             }
         },
-        "delivery_date": "2024-11-12"
+        "delivery_date": "13-11-2024"
     }
     
-    doc_generator = DocProcessor(data=data)
-    doc_generator.smart_generate(
-        doc_type=DocumentType.INVOICE, 
-        invoice_type=InvoiceTemplate.NEON
-    )
+    doc_generator = DocProcessor()
+    doc_generator.smart_generate(data=data)
     
