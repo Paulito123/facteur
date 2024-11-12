@@ -6,14 +6,14 @@
         "1": {
             "description": "Item 1",
             "qty": 1,
-            "base_amt": 100,
-            "vat_amt": 21
+            "price": 100,
+            "vat_pct": 0.21
         },
         "2": {
             "description": "Item 2",
             "qty": 2,
-            "base_amt": 10,
-            "vat_amt": 2.1
+            "price": 10,
+            "vat_pct": 0.21
         }
     },
     "creditor_id": "1"

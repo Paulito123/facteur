@@ -1,6 +1,6 @@
 import datetime
 
-from typing import Dict, AnyStr
+from typing import Dict, AnyStr, Tuple
 from docx import Document
 from docx.shared import Cm
 from enumerations import DocumentType, InvoiceTemplate, OfferTemplate, BorderTemplate
@@ -116,6 +116,21 @@ class DocProcessor:
         return None
 
 
+    def get_next_doc_sequence(self, doc_type: DocumentType, last_seq: int) -> Tuple[AnyStr, AnyStr]:
+        """
+        Function to get the next document sequence number for the given document type.
+        Args:
+            doc_type (DocumentType): The document type.
+            last_seq (Last sequence): The last sequence number used for the document type.
+        Returns:
+            Tuple: [the field identifier, the doc sequence number]
+        """
+        doc_number = f'{datetime.now().year}-{last_seq + 1}'
+        field_id = 'invoice_nr' if doc_type == DocumentType.INVOICE else 'offer_nr'
+        
+        return (field_id, doc_number)
+        
+
     def smart_generate(self,
                        doc_type: DocumentType = DocumentType.INVOICE, 
                        invoice_type: InvoiceTemplate = InvoiceTemplate.NEON) -> None:
@@ -135,37 +150,101 @@ class DocProcessor:
         # all the default selection logic goes here
         if doc_type == DocumentType.INVOICE:
             
+            # title
             doc_data["header"]["title"] = "Factuur"
-
+            
+            # invoice date
             if "invoice_date" in self.data:
-                doc_data["invoice_date"] = self.data["invoice_date"]
+                doc_data["header"]["invoice_date"] = self.data["invoice_date"]
             else:
-                doc_data["invoice_date"] = datetime.now().strftime("%d-%m-%Y")
+                doc_data["header"]["invoice_date"] = datetime.now().strftime("%d-%m-%Y")
             
+            # delivery date
             if "delivery_date" in self.data:
-                doc_data["delivery_date"] = self.data["delivery_date"]
+                doc_data["header"]["delivery_date"] = self.data["delivery_date"]
             else:
-                doc_data["delivery_date"] = datetime.now().strftime("%d-%m-%Y")
+                doc_data["header"]["delivery_date"] = datetime.now().strftime("%d-%m-%Y")
             
-            policy = self.db["policies"][self.data["defaults"]["policy_id"]]
+            # due date
+            if "due_date" in self.data:
+                doc_data["header"]["due_date"] = self.data["due_date"]
+            else:
+                doc_data["header"]["due_date"] = (datetime.now() + datetime.timedelta(days=10)).strftime("%d-%m-%Y")
             
-            currency = self.db["currencies"][self.data["defaults"]["currency_id"]]
-            doc_data["symbol"] = currency["symbol"]
+            # debtor
+            debtor = self.db["companies"][self.data["debtor_id"]]
+            for key in debtor.keys():
+                doc_data["header"]['debtor_' + key] = debtor[key]
 
-            creditor = self.db["companies"][self.data["defaults"]["creditor_id"]]
+            # policies
+            policies = [self.db["policies"][pid] for pid in self.db["defaults"]["policy_ids"]]
+            doc_data["body"]["policies"] = policies
+
+            # symbol
+            currency = self.db["currencies"][self.data["defaults"]["currency_id"]]
+            doc_data["body"]["symbol"] = currency["symbol"]
+
+            # items
+            invoice_base_amt = 0
+            invoice_vat_amt = 0
+            invoice_total_amt = 0
+            doc_data["body"]["items"] = {}
+
+            if invoice_type == InvoiceTemplate.NEON:
+                items = self.data["items"]
+
+                for item_key in items.keys():
+                    doc_data["body"]["items"][item_key] = item_key
+                    doc_data["body"]["items"][item_key]["description"] = items[item_key]["description"]
+                    doc_data["body"]["items"][item_key]["qty"] = items[item_key]["qty"]
+                    doc_data["body"]["items"][item_key]["base_amt"] = items[item_key]["price"] * items[item_key]["price"]
+                    doc_data["body"]["items"][item_key]["vat_amt"] = doc_data["body"]["items"]["base_amt"] * items[item_key]["vat_pct"]
+                    doc_data["body"]["items"][item_key]["total_amt"] = doc_data["body"]["items"]["base_amt"] + doc_data["body"]["items"]["vat_amt"]
+                    invoice_base_amt += doc_data["body"]["items"][item_key]["base_amt"]
+                    invoice_vat_amt += doc_data["body"]["items"][item_key]["vat_amt"]
+                    invoice_total_amt += (invoice_base_amt + invoice_vat_amt)
+            
+            elif invoice_type == InvoiceTemplate.ARGENTA:
+                consultancy_days = self.data["consultancy_days"]
+                base_amt = consultancy_days * self.db["defaults"]["argenta"]["day_rate"]
+                doc_data["body"]["items"]["1"] = {
+                    "description": self.db["defaults"]["argenta"]["item_description"],
+                    "qty": consultancy_days,
+                    "base_amt": base_amt,
+                    "vat_amt": base_amt * 0.21,
+                    "total_amt": base_amt * 1.21
+                }
+                invoice_base_amt = base_amt
+                invoice_vat_amt = doc_data["body"]["items"]["1"]["vat_amt"]
+                invoice_total_amt = doc_data["body"]["items"]["1"]["total_amt"]
+            else:
+                raise Exception("Invalid invoice type")
+            
+            # totals
+            doc_data["body"]["invoice_base_amt"] = invoice_base_amt
+            doc_data["body"]["invoice_vat_amt"] = invoice_vat_amt
+            doc_data["body"]["invoice_total_amt"] = invoice_total_amt
+
+            # creditor
+            if 'creditor_id' in self.data:
+                creditor_id = self.data['creditor_id']
+            else:
+                creditor_id = self.db["defaults"]["creditor_id"]
+
+            creditor = self.db["companies"][creditor_id]
             for key in creditor.keys():
                 if key not in ["last_sequences"]:
-                    doc_data['creditor_' + key] = creditor[key]
+                    doc_data["footer"]['creditor_' + key] = creditor[key]
                 else:
-                    doc_data['invoice_nr'] = f'{datetime.now().year}-{creditor['last_sequences']["invoice"] + 1}'
-            
-            
-
-            self.generate_invoice(self.data)
+                    # invoice number
+                    next_seq = self.get_next_doc_sequence(doc_type, creditor['last_sequences']["invoice"])
+                    doc_data["header"][next_seq[0]] = next_seq[1]
 
         elif doc_type == DocumentType.OFFER:
-            doc_data["titel"] = "Offerte"
+            doc_data["header"]["title"] = "Offerte"
             self.generate_offer(self.data)
+        
+        self.generate_invoice(self.data)
 
 
     def generate_offer(self):
