@@ -12,14 +12,19 @@ from doc_helper import DocHelper
 
 class DocProcessor:
 
-    def __init__(self):
+    def __init__(self, data: Dict = {}):
         self.db = None
+        self.set_data(data)
 
         try:
             with open(Config.PATH_DB, "r") as f:
                 self.db = load(f)
         except Exception as e:
             Exception(f"Could not initialize DB: {e}")
+    
+
+    def set_data(self, data: Dict) -> None:
+        self.data = data
         
 
     def __check_data(self, data) -> bool:
@@ -111,58 +116,62 @@ class DocProcessor:
         return None
 
 
-    def smart_generate(self, 
-                       data: Dict,
+    def smart_generate(self,
                        doc_type: DocumentType = DocumentType.INVOICE, 
                        invoice_type: InvoiceTemplate = InvoiceTemplate.NEON) -> None:
         
         # Check if the data is valid
-        if not self.__check_data(data):
+        if not self.__check_data(self.data):
             return None
         
         doc_data = {
-            "path_image": 'files/images/tokaio.png',
+            "header": {
+                "path_image": 'files/images/tokaio.png'
+            },
+            "body": {},
+            "footer": {}
         }
         
         # all the default selection logic goes here
         if doc_type == DocumentType.INVOICE:
             
-            doc_data["titel"] = "Factuur"
+            doc_data["header"]["title"] = "Factuur"
 
-            if "invoice_date" in data:
-                doc_data["invoice_date"] = data["invoice_date"]
+            if "invoice_date" in self.data:
+                doc_data["invoice_date"] = self.data["invoice_date"]
             else:
                 doc_data["invoice_date"] = datetime.now().strftime("%d-%m-%Y")
             
-            if "delivery_date" in data:
-                doc_data["delivery_date"] = data["delivery_date"]
+            if "delivery_date" in self.data:
+                doc_data["delivery_date"] = self.data["delivery_date"]
             else:
                 doc_data["delivery_date"] = datetime.now().strftime("%d-%m-%Y")
             
-            policy = self.db["policies"][data["defaults"]["policy_id"]]
+            policy = self.db["policies"][self.data["defaults"]["policy_id"]]
             
-            currency = self.db["currencies"][data["defaults"]["currency_id"]]
+            currency = self.db["currencies"][self.data["defaults"]["currency_id"]]
             doc_data["symbol"] = currency["symbol"]
 
-            creditor = self.db["companies"][data["defaults"]["creditor_id"]]
+            creditor = self.db["companies"][self.data["defaults"]["creditor_id"]]
             for key in creditor.keys():
                 if key not in ["last_sequences"]:
                     doc_data['creditor_' + key] = creditor[key]
                 else:
                     doc_data['invoice_nr'] = f'{datetime.now().year}-{creditor['last_sequences']["invoice"] + 1}'
             
+            
 
-            self.generate_invoice(data)
+            self.generate_invoice(self.data)
 
         elif doc_type == DocumentType.OFFER:
             doc_data["titel"] = "Offerte"
-            self.generate_offer(data)
+            self.generate_offer(self.data)
 
 
-    def generate_offer(self, data: Dict):
+    def generate_offer(self):
         
         # Create a 
-        self.__generate(data)
+        self.__generate(self.data)
 
         # create a new document
         dhelpr = DocHelper()
@@ -185,28 +194,4 @@ class DocProcessor:
         
         # Create a 
         self.__generate(data)
-
-
-if __name__ == "__main__":
-    data = {
-        "debtor_id": 3,
-        "items": {
-            "1": {
-                "description": "Neon design", 
-                "qty": 1, 
-                "vat_pct": 0.21, 
-                "base_amt": 25
-            },
-            "2": {
-                "description": "Light board - outdoor - dimmer - remote - 100x34 cm", 
-                "qty": 1, 
-                "vat_pct": 0.21,
-                "base_amt": 429.55
-            }
-        },
-        "delivery_date": "13-11-2024"
-    }
-    
-    doc_generator = DocProcessor()
-    doc_generator.smart_generate(data=data)
     

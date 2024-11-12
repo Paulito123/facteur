@@ -202,7 +202,7 @@ class DocHelper:
         run.add_break(WD_BREAK.LINE)
 
         if 'tav'in data:
-            run.add_text(f't.a.v. {data["tav"]}')
+            run.add_text(f't.a.v. {data["debtor_tav"]}')
             run.add_break(WD_BREAK.LINE)
 
         run.add_text(f"{data['debtor_street']} {data['debtor_nr']}")
@@ -254,7 +254,8 @@ class DocHelper:
             detail_tabel.rows[counter].cells[1].text = f'{data["items"][item_nr]["qty"]}'
             detail_tabel.rows[counter].cells[2].text = f'{data["symbol"]} {data["items"][item_nr]["base_amt"]}'
             detail_tabel.rows[counter].cells[3].text = f'{data["symbol"]} {data["items"][item_nr]["vat_amt"]}'
-            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {data["items"][item_nr]["tot_amt"]}'
+            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {data["items"][item_nr]["total_amt"]}'
+            counter += 1
 
         # Totaal
         detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run('Subtotaal')
@@ -267,7 +268,7 @@ class DocHelper:
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_vat_amt"]}')
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_tot_amt"]}').bold = True
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_total_amt"]}').bold = True
 
         self.set_table_border_template(detail_tabel, BorderTemplate.DETAIL_1)
 

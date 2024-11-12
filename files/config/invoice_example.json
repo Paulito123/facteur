@@ -1,0 +1,52 @@
+{
+    "header": {
+        "path_image": "files/images/tokaio.png",
+        "title": "Factuur",
+        "invoice_nr": "2024-11",
+        "invoice_date": "11-11-2024",
+        "delivery_date": "13-11-2024",
+        "due_date": "11-12-2024",
+        "debtor_name": "ISC Tennis en Padel",
+        "debtor_tav": "BE1234.000.000",
+        "debtor_street": "De Hoogt",
+        "debtor_nr": "3",
+        "debtor_zip": "2360",
+        "debtor_city": "Ergens Anders",
+        "debtor_country": "België"
+    },
+    "body": {
+        "symbol": "€",
+        "items": {
+            "1": {
+                "description": "Item 1",
+                "qty": 1,
+                "base_amt": 100,
+                "vat_amt": 21,
+                "total_amt": 121
+            },
+            "2": {
+                "description": "Item 2",
+                "qty": 2,
+                "base_amt": 20,
+                "vat_amt": 4.2,
+                "total_amt": 24.2
+            }
+        },
+        "invoice_base_amt": 120,
+        "invoice_vat_amt": 25.2,
+        "invoice_total_amt": 145.2
+    },
+    "footer": {
+        "creditor_name": "Acompany",
+        "creditor_street": "Kerkstraat",
+        "creditor_nr": "5",
+        "creditor_zip": "2000",
+        "creditor_city": "Ergens Anders",
+        "creditor_country": "België",
+        "creditor_vat": "BE1234456879",
+        "creditor_email": "bla@bla.com",
+        "creditor_phone": "+32486123456",
+        "creditor_bank_account": "BE11999999898989",
+        "creditor_rpr": "RPR Antwerpen"
+    }
+}
