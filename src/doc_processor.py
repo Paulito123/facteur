@@ -1,5 +1,4 @@
-import datetime
-
+from datetime import datetime, timedelta
 from typing import Dict, AnyStr, Tuple
 from docx import Document
 from docx.shared import Cm
@@ -20,7 +19,7 @@ class DocProcessor:
             with open(Config.PATH_DB, "r") as f:
                 self.db = load(f)
         except Exception as e:
-            Exception(f"Could not initialize DB: {e}")
+            raise Exception(f"Could not initialize DB: {e}")
     
 
     def set_data(self, data: Dict) -> None:
@@ -28,33 +27,6 @@ class DocProcessor:
         
 
     def __check_data(self, data) -> bool:
-        """
-        Validates the provided data dictionary to ensure all required fields are present.
-        Args:
-            data (dict): The data dictionary to be validated. It should contain the following keys:
-                - "delivery_date" (str): The delivery date.
-                - "items" (list): A list of items, where each item is a dictionary containing:
-                    - "description" (str): Description of the item.
-                    - "qty" (int): Quantity of the item.
-                    - "vat_pct" (float): VAT percentage for the item.
-                    - "base_amt" (float): Base amount for the item.
-                - "debtor_id" (str, optional): The ID of the debtor.
-                - "debtor_details" (dict, optional): Details of the debtor, containing:
-                    - "name" (str): Name of the debtor.
-                    - "street" (str): Street address of the debtor.
-                    - "number" (str): Street number of the debtor.
-                    - "city" (str): City of the debtor.
-                    - "zip" (str): ZIP code of the debtor.
-                    - "country" (str): Country of the debtor.
-                    - "vat" (str): VAT number of the debtor.
-                    - "bank_account" (str): Bank account of the debtor.
-                    - "rpr" (str): RPR of the debtor.
-        Returns:
-            bool: True if all required fields are present, False otherwise.
-        Raises:
-            Exception: If any required field is missing, an exception is raised with a message indicating the missing field.
-        """
-        
         try:
             # level 1 check
             for s in ["delivery_date", "items"]:
@@ -81,37 +53,29 @@ class DocProcessor:
             return False
     
 
-    def __generate(self, 
-                   data: Dict,
-                   doc_type: DocumentType = DocumentType.INVOICE, 
-                   invoice_type: InvoiceTemplate = InvoiceTemplate.NEON) -> None:
+    def __generate(self, data: Dict, doc_name: AnyStr) -> None:
         """
         fucntion to generate the actual document
         """
         # Check if the data is valid
-        if not self.__check_data(data):
-            return None
+        # if not self.__check_data(data):
+        #     return None
         
-        creditor_id = data["creditor_id"]
-        debtor_id = data["debtor_id"]
-        debtor_person_id = data["debtor_person_id"]
-        invoice_date = data["invoice_date"]
-        due_date = data["due_date"]
-        items = data["items"]
-
-        if doc_type == DocumentType.INVOICE:
-            if invoice_type == InvoiceTemplate.NEON:
-                self.generate_neon_invoice(data)
-            elif invoice_type == InvoiceTemplate.ARGENTA:
-                self.generate_argenta_invoice(data)
-            else:
-                raise Exception("Invalid invoice type")
-            
-        elif doc_type == DocumentType.OFFER:
-            ...
-        # Create a new Word document
+        # create a new document
+        dhelpr = DocHelper()
         document = Document()
-        document.add_heading('Invoice', 0)
+
+        # set the styles for the document
+        dhelpr.set_styles(document)
+
+        # set the header, body and footer
+        dhelpr.set_header(document, data["header"])
+        dhelpr.set_body(document, data["body"])
+        dhelpr.set_footer(document, data["footer"])
+
+        # save the document and convert it to pdf
+        document.save(f'files/invoices/{doc_name}.docx')
+        dhelpr.convert_to_pdf(f'files/invoices/{doc_name}.docx', f'files/invoices/{doc_name}.pdf')
 
         return None
 
@@ -136,8 +100,8 @@ class DocProcessor:
                        invoice_type: InvoiceTemplate = InvoiceTemplate.NEON) -> None:
         
         # Check if the data is valid
-        if not self.__check_data(self.data):
-            return None
+        # if not self.__check_data(self.data):
+        #     return None
         
         doc_data = {
             "header": {
@@ -169,7 +133,7 @@ class DocProcessor:
             if "due_date" in self.data:
                 doc_data["header"]["due_date"] = self.data["due_date"]
             else:
-                doc_data["header"]["due_date"] = (datetime.now() + datetime.timedelta(days=10)).strftime("%d-%m-%Y")
+                doc_data["header"]["due_date"] = (datetime.now() + timedelta(days=10)).strftime("%d-%m-%Y")
             
             # debtor
             debtor = self.db["companies"][self.data["debtor_id"]]
@@ -181,7 +145,7 @@ class DocProcessor:
             doc_data["body"]["policies"] = policies
 
             # symbol
-            currency = self.db["currencies"][self.data["defaults"]["currency_id"]]
+            currency = self.db["currencies"][self.db["defaults"]["currency_id"]]
             doc_data["body"]["symbol"] = currency["symbol"]
 
             # items
@@ -194,15 +158,21 @@ class DocProcessor:
                 items = self.data["items"]
 
                 for item_key in items.keys():
-                    doc_data["body"]["items"][item_key] = item_key
+                    # calculations
+                    base_amt = items[item_key]["qty"] * items[item_key]["price"]
+                    vat_amt = base_amt * items[item_key]["vat_pct"]
+                    total_amt = base_amt + vat_amt
+                    invoice_base_amt += base_amt
+                    invoice_vat_amt += vat_amt
+                    invoice_total_amt += total_amt
+
+                    # building items
+                    doc_data["body"]["items"][item_key] = {}
                     doc_data["body"]["items"][item_key]["description"] = items[item_key]["description"]
                     doc_data["body"]["items"][item_key]["qty"] = items[item_key]["qty"]
-                    doc_data["body"]["items"][item_key]["base_amt"] = items[item_key]["price"] * items[item_key]["price"]
-                    doc_data["body"]["items"][item_key]["vat_amt"] = doc_data["body"]["items"]["base_amt"] * items[item_key]["vat_pct"]
-                    doc_data["body"]["items"][item_key]["total_amt"] = doc_data["body"]["items"]["base_amt"] + doc_data["body"]["items"]["vat_amt"]
-                    invoice_base_amt += doc_data["body"]["items"][item_key]["base_amt"]
-                    invoice_vat_amt += doc_data["body"]["items"][item_key]["vat_amt"]
-                    invoice_total_amt += (invoice_base_amt + invoice_vat_amt)
+                    doc_data["body"]["items"][item_key]["base_amt"] = base_amt
+                    doc_data["body"]["items"][item_key]["vat_amt"] = vat_amt
+                    doc_data["body"]["items"][item_key]["total_amt"] = total_amt
             
             elif invoice_type == InvoiceTemplate.ARGENTA:
                 consultancy_days = self.data["consultancy_days"]
@@ -239,38 +209,24 @@ class DocProcessor:
                     # invoice number
                     next_seq = self.get_next_doc_sequence(doc_type, creditor['last_sequences']["invoice"])
                     doc_data["header"][next_seq[0]] = next_seq[1]
+            
+            self.generate_invoice(doc_data)
 
         elif doc_type == DocumentType.OFFER:
             doc_data["header"]["title"] = "Offerte"
-            self.generate_offer(self.data)
+            self.generate_offer(doc_data)
         
-        self.generate_invoice(self.data)
 
-
-    def generate_offer(self):
+    def generate_offer(self, data: Dict):
         
-        # Create a 
-        self.__generate(self.data)
-
-        # create a new document
-        dhelpr = DocHelper()
-        document = Document()
-
-        # set the styles for the document
-        dhelpr.set_styles(document)
-
-        # set the header, body and footer
-        dhelpr.set_header(document)
-        dhelpr.set_body(document)
-        dhelpr.set_footer(document)
-
-        # save the document and convert it to pdf
-        document.save('files/invoices/voorbeeld2.docx')
-        dhelpr.convert_to_pdf('files/invoices/voorbeeld2.docx', 'files/invoices/voorbeeld2.pdf')
+        # Create a offer
+        doc_name = f'O_{data["header"]["offer_nr"]}'
+        self.__generate(self.data, doc_name)
 
 
     def generate_invoice(self, data: Dict):
         
-        # Create a 
-        self.__generate(data)
+        # Create an invoice
+        doc_name = f'I_{data["header"]["invoice_nr"]}'
+        self.__generate(data, doc_name)
     

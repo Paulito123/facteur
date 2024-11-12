@@ -1,0 +1,57 @@
+{
+    "companies": {
+        "1": {
+            "name": "Example Company 1",
+            "street": "Example Street",
+            "number": "123",
+            "zip": "12345",
+            "city": "Example City",
+            "country": "Example Country",
+            "vat": "EX123456789",
+            "email": "example1@example.com",
+            "phone": "+123 456 7890",
+            "bank_account": "EX123456789012345678",
+            "rpr": "Example RPR",
+            "last_sequences": {
+                "invoice": 1,
+                "offer": 1
+            }
+        },
+        "2": {
+            "name": "Example Company 2",
+            "street": "Another Street",
+            "number": "456",
+            "zip": "67890",
+            "city": "Another City",
+            "country": "Another Country",
+            "email": "example2@example.com",
+            "phone": "+987 654 3210"
+        }
+    },
+    "defaults": {
+        "policy_ids": [
+            "1"
+        ],
+        "currency_id": "USD",
+        "creditor_id": "1",
+        "argenta": {
+            "day_rate": 500,
+            "item_description": "Consultancy days"
+        }
+    },
+    "currencies": {
+        "USD": {
+            "name": "US Dollar",
+            "symbol": "$"
+        }
+    },
+    "policies": {
+        "1": {
+            "title": "Example Policy",
+            "lines": [
+                "This is an example policy"
+            ]
+        }
+    },
+    "invoices": {}
+}
