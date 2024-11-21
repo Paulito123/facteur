@@ -192,16 +192,16 @@ class DocHelper:
         run.add_break(WD_BREAK.LINE)
         run.add_text(f'Factuurdatum {data["invoice_date"]}')
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'Vervaldag {data["due_date"]}')
-        run.add_break(WD_BREAK.LINE)
         run.add_text(f'Leveringsdatum {data["delivery_date"]}')
+        run.add_break(WD_BREAK.LINE)
+        run.add_text(f'Vervaldag {data["due_date"]}')
 
         run = rij1[2].paragraphs[0].add_run()
 
         run.add_text(f"{data['debtor_name']}")
         run.add_break(WD_BREAK.LINE)
 
-        if 'tav'in data:
+        if 'debtor_tav'in data:
             run.add_text(f't.a.v. {data["debtor_tav"]}')
             run.add_break(WD_BREAK.LINE)
 
@@ -220,59 +220,72 @@ class DocHelper:
 
         detail_tabel_titel = document.add_paragraph('Details')
         detail_tabel_titel.style = document.styles['Heading 2']
-        detail_tabel = document.add_table(rows=aantal_artikels + 2, cols=5)
+        detail_tabel = document.add_table(rows=aantal_artikels + 2, cols=6)
 
         detail_tabel.autofit = False 
         detail_tabel.allow_autofit = False
 
         # HEADER
-        # 19 cm te verdelen over 5 kolommen (3.8)
+        # 19 cm te verdelen over 5 kolommen (3.8) 2.5
         # Product beschrijving
-        detail_tabel.columns[0].width = Cm(6.5)
+        detail_tabel.columns[0].width = Cm(5.5)
         detail_tabel.rows[0].cells[0].text = 'Product beschrijving'
 
         # Aantal
-        detail_tabel.columns[1].width = Cm(2.5)
+        detail_tabel.columns[1].width = Cm(2)
         detail_tabel.rows[0].cells[1].text = 'Aantal'
 
+        # Eenheidsprijs
+        detail_tabel.columns[2].width = Cm(2)
+        detail_tabel.rows[0].cells[2].text = 'Eenheidsprijs'
+
         # Prijs
-        detail_tabel.columns[2].width = Cm(3)
-        detail_tabel.rows[0].cells[2].text = 'Prijs'
+        detail_tabel.columns[3].width = Cm(2.5)
+        detail_tabel.rows[0].cells[3].text = 'Prijs'
 
         # BTW
-        detail_tabel.columns[3].width = Cm(3.5)
-        detail_tabel.rows[0].cells[3].text = 'BTW (21%)'
+        detail_tabel.columns[4].width = Cm(3.5)
+        detail_tabel.rows[0].cells[4].text = 'BTW (21%)'
 
         # Bedrag
-        detail_tabel.columns[4].width = Cm(3.5)
-        detail_tabel.rows[0].cells[4].text = 'Bedrag'
+        detail_tabel.columns[5].width = Cm(3.5)
+        detail_tabel.rows[0].cells[5].text = 'Totaalprijs'
 
         # DETAILS
         counter = 1
         for item_nr in data["items"].keys():
             detail_tabel.rows[counter].cells[0].text = f'{data["items"][item_nr]["description"]}'
             detail_tabel.rows[counter].cells[1].text = f'{data["items"][item_nr]["qty"]}'
-            detail_tabel.rows[counter].cells[2].text = f'{data["symbol"]} {data["items"][item_nr]["base_amt"]}'
-            detail_tabel.rows[counter].cells[3].text = f'{data["symbol"]} {data["items"][item_nr]["vat_amt"]}'
-            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {data["items"][item_nr]["total_amt"]}'
+            detail_tabel.rows[counter].cells[2].text = f'{data["symbol"]} {data["items"][item_nr]["unit_amt"]}'
+            detail_tabel.rows[counter].cells[3].text = f'{data["symbol"]} {data["items"][item_nr]["base_amt"]}'
+            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {data["items"][item_nr]["vat_amt"]}'
+            detail_tabel.rows[counter].cells[5].text = f'{data["symbol"]} {data["items"][item_nr]["total_amt"]}'
             counter += 1
 
         # Totaal
-        detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run('Subtotaal')
-        detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run('BTW')
-        detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[3].paragraphs[0].add_run('Totaal').bold = True
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run('Subtotaal')
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run('BTW')
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
+        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run('Totaal').bold = True
 
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_base_amt"]}').bold = False
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_vat_amt"]}')
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_total_amt"]}').bold = True
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_base_amt"]}').bold = False
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_vat_amt"]}')
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_total_amt"]}').bold = True
 
         self.set_table_border_template(detail_tabel, BorderTemplate.DETAIL_1)
 
-        # trailing_text = document.add_paragraph('Hier komt nog wat tekst onder de tabel')
+        trailing_text = document.add_paragraph()
+        run = trailing_text.add_run()
+        run.add_break()
+
+        if "payment_date" in data:
+            run.add_text(f'Dit factuur is betaald op {data["payment_date"]}.')
+        else:
+            run.add_text(f'Gelieve het factuurbedrag van {data["symbol"]} {data["invoice_total_amt"]} te betalen voor {data["due_date"]} op rekeningnummer {data["creditor_bank_account"]}.')
+        
 
 
     def set_footer(self, document: Document, data: Dict) -> None:
@@ -290,9 +303,9 @@ class DocHelper:
         run.add_text(f'{data["creditor_zip"]} {data["creditor_city"]} {data["creditor_country"]}')
         voet_1_cell_2 = rij0[1]
         run = voet_1_cell_2.paragraphs[0].add_run()
-        run.add_text(f'{data["creditor_rpr"]}')
+        run.add_text(f'rpr {data["creditor_rpr"]}')
         run.add_break()
-        run.add_text(f'BTW {data["creditor_vat"]}')
+        run.add_text(f'btw {data["creditor_vat"]}')
         run.add_break()
         run.add_text(f'rek {data["creditor_bank_account"]}')
         voet_1_cell_3 = rij0[2]
@@ -317,9 +330,9 @@ class DocHelper:
         run.add_text(f'{data["creditor_zip"]} {data["creditor_city"]} {data["creditor_country"]}')
         voet_2_cell_2 = rij0[1]
         run = voet_2_cell_2.paragraphs[0].add_run()
-        run.add_text(f'{data["creditor_rpr"]}')
+        run.add_text(f'rpr {data["creditor_rpr"]}')
         run.add_break()
-        run.add_text(f'BTW {data["creditor_vat"]}')
+        run.add_text(f'btw {data["creditor_vat"]}')
         run.add_break()
         run.add_text(f'rek {data["creditor_bank_account"]}')
         voet_2_cell_3 = rij0[2]

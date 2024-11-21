@@ -162,4 +162,5 @@ cython_debug/
 #.idea/
 
 files/config/db.json
+files/config/prd_*.json
 files/invoices/
