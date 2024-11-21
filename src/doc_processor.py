@@ -129,7 +129,9 @@ class DocProcessor:
                 doc_data["header"]["invoice_date"] = datetime.now().strftime("%d-%m-%Y")
             
             # delivery date
-            if "delivery_date" in self.data:
+            if 'period' in self.data:
+                doc_data["header"]["period"] = self.data["period"]
+            elif "delivery_date" in self.data:
                 doc_data["header"]["delivery_date"] = self.data["delivery_date"]
             else:
                 doc_data["header"]["delivery_date"] = datetime.now().strftime("%d-%m-%Y")
