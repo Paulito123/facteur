@@ -15,6 +15,15 @@ class DocHelper:
         pass
 
 
+    def format_number(self, number: float, decimal_places: int = 2) -> str:
+        if decimal_places == 0:
+            return f"{number:,.0f}".replace(',','*').replace('.', ',').replace('*','.')
+        elif decimal_places == 1:
+            return f"{number:,.1f}".replace(',','*').replace('.', ',').replace('*','.')
+        elif decimal_places == 2:
+            return f"{number:,.2f}".replace(',','*').replace('.', ',').replace('*','.')
+    
+
     def set_cell_border(self, cell, **kwargs):
         """
         Set cell`s border
@@ -240,34 +249,34 @@ class DocHelper:
         detail_tabel.rows[0].cells[0].text = 'Product beschrijving'
 
         # Aantal
-        detail_tabel.columns[1].width = Cm(2)
+        detail_tabel.columns[1].width = Cm(1.5)
         detail_tabel.rows[0].cells[1].text = 'Aantal'
 
         # Eenheidsprijs
-        detail_tabel.columns[2].width = Cm(2)
+        detail_tabel.columns[2].width = Cm(3)
         detail_tabel.rows[0].cells[2].text = 'Eenheidsprijs'
 
         # Prijs
-        detail_tabel.columns[3].width = Cm(2.5)
-        detail_tabel.rows[0].cells[3].text = 'Prijs'
+        detail_tabel.columns[3].width = Cm(3)
+        detail_tabel.rows[0].cells[3].text = 'Bedrag excl. BTW'
 
         # BTW
-        detail_tabel.columns[4].width = Cm(3.5)
+        detail_tabel.columns[4].width = Cm(3)
         detail_tabel.rows[0].cells[4].text = 'BTW (21%)'
 
         # Bedrag
-        detail_tabel.columns[5].width = Cm(3.5)
-        detail_tabel.rows[0].cells[5].text = 'Totaalprijs'
+        detail_tabel.columns[5].width = Cm(3)
+        detail_tabel.rows[0].cells[5].text = 'Bedrag incl. BTW'
 
         # DETAILS
         counter = 1
         for item_nr in data["items"].keys():
             detail_tabel.rows[counter].cells[0].text = f'{data["items"][item_nr]["description"]}'
-            detail_tabel.rows[counter].cells[1].text = f'{data["items"][item_nr]["qty"]}'
-            detail_tabel.rows[counter].cells[2].text = f'{data["symbol"]} {data["items"][item_nr]["unit_amt"]}'
-            detail_tabel.rows[counter].cells[3].text = f'{data["symbol"]} {data["items"][item_nr]["base_amt"]}'
-            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {data["items"][item_nr]["vat_amt"]}'
-            detail_tabel.rows[counter].cells[5].text = f'{data["symbol"]} {data["items"][item_nr]["total_amt"]}'
+            detail_tabel.rows[counter].cells[1].text = f'{self.format_number(data["items"][item_nr]["qty"], 0)}'
+            detail_tabel.rows[counter].cells[2].text = f'{data["symbol"]} {self.format_number(data["items"][item_nr]["unit_amt"])}'
+            detail_tabel.rows[counter].cells[3].text = f'{data["symbol"]} {self.format_number(data["items"][item_nr]["base_amt"])}'
+            detail_tabel.rows[counter].cells[4].text = f'{data["symbol"]} {self.format_number(data["items"][item_nr]["vat_amt"])}'
+            detail_tabel.rows[counter].cells[5].text = f'{data["symbol"]} {self.format_number(data["items"][item_nr]["total_amt"])}'
             counter += 1
 
         # Totaal
@@ -277,11 +286,11 @@ class DocHelper:
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
         detail_tabel.rows[aantal_artikels+1].cells[4].paragraphs[0].add_run('Totaal').bold = True
 
-        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_base_amt"]}').bold = False
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {self.format_number(data["invoice_base_amt"])}').bold = False
         detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_vat_amt"]}')
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {self.format_number(data["invoice_vat_amt"])}')
         detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run().add_break(WD_BREAK.LINE)
-        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {data["invoice_total_amt"]}').bold = True
+        detail_tabel.rows[aantal_artikels+1].cells[5].paragraphs[0].add_run(f'{data["symbol"]} {self.format_number(data["invoice_total_amt"])}').bold = True
 
         self.set_table_border_template(detail_tabel, BorderTemplate.DETAIL_1)
 
@@ -292,9 +301,8 @@ class DocHelper:
         if "payment_date" in data:
             run.add_text(f'Dit factuur is betaald op {data["payment_date"]}.')
         else:
-            run.add_text(f'Gelieve het factuurbedrag van {data["symbol"]} {data["invoice_total_amt"]} te betalen voor {data["due_date"]} op rekeningnummer {data["creditor_bank_account"]}.')
+            run.add_text(f'Gelieve het factuurbedrag van {data["symbol"]} {self.format_number(data["invoice_total_amt"])} te betalen voor {data["due_date"]} op rekeningnummer {data["creditor_bank_account"]}.')
         
-
 
     def set_footer(self, document: Document, data: Dict) -> None:
         # FOOTERS
