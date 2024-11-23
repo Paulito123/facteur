@@ -200,18 +200,30 @@ class DocHelper:
         if 'period' in data:
             delivery_date_label = "Periode"
             delivery_date = data["period"]
+            tab_count = 2
         else:
             delivery_date_label = "Leveringsdatum"
             delivery_date = data["delivery_date"]
+            tab_count = 1
         
+        run.add_text(f'Factuur nr.')
+        run.add_text(f'\t')
+        run.add_text(data["invoice_nr"])
+        run.add_break(WD_BREAK.LINE)
 
-        run.add_text(f'Factuur nr. {data["invoice_nr"]}')
+        run.add_text(f'Factuurdatum')
+        run.add_text(f'\t')
+        run.add_text(data["invoice_date"])
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'Factuurdatum {data["invoice_date"]}')
+
+        run.add_text(f'{delivery_date_label}')
+        run.add_text(f'\t'*tab_count)
+        run.add_text(delivery_date)
         run.add_break(WD_BREAK.LINE)
-        run.add_text(f'{delivery_date_label} {delivery_date}')
-        run.add_break(WD_BREAK.LINE)
-        run.add_text(f'Vervaldag {data["due_date"]}')
+
+        run.add_text(f'Vervaldag')
+        run.add_text(f'\t')
+        run.add_text(data["due_date"])
 
         run = rij1[2].paragraphs[0].add_run()
 
