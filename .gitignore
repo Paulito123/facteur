@@ -164,3 +164,4 @@ cython_debug/
 files/config/db.json
 files/config/prd_*.json
 files/invoices/
+*secret*
