@@ -14,6 +14,9 @@ class Config:
 
     DIR_ID_ARGENTA = envs["DIR_ID_ARGENTA"]
 
+    FROM_ADDRESS = envs["FROM_ADDRESS"]
+    TO_ADDRESS_TEST = envs["TO_ADDRESS_TEST"]
+
     # If modifying these scopes, delete the file token.json 
     # abd clear browser cache if issues persist. 
     APP_SCOPES = [
@@ -23,4 +26,10 @@ class Config:
         # "https://www.googleapis.com/auth/drive.appdata",
         # "https://www.googleapis.com/auth/drive.appfolder",
         # "https://www.googleapis.com/auth/drive.install",
-    ]
+        # "https://www.googleapis.com/auth/gmail.readonly",
+        # "https://www.googleapis.com/auth/gmail.send",
+        "https://www.googleapis.com/auth/gmail.compose",
+        # "https://www.googleapis.com/auth/gmail.modify",
+        # "https://www.googleapis.com/auth/gmail.metadata",
+        # "https://www.googleapis.com/auth/gmail.labels",
+        ]
