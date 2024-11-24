@@ -161,7 +161,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-files/config/db.json
-files/config/prd_*.json
-files/invoices/
+files/db/db.json
+files/invoices/json/prd_*.json
+files/invoices/I_*.docx
+files/invoices/I_*.pdf
 *secret*
+token.json
